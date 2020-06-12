@@ -7,6 +7,8 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -24,7 +26,7 @@ public class ProducerConsumerWithLocks {
 		class Consumer implements Callable<String> {
 
 			@Override
-			public String call() throws InterruptedException {
+			public String call() throws InterruptedException, TimeoutException {
 
 				int count = 0;
 				while (count++ < 50) {
@@ -35,7 +37,9 @@ public class ProducerConsumerWithLocks {
 
 						while (isEmpty(buffer)) {
 							// wait
-							isEmpty.await();
+							if (!isEmpty.await(10, TimeUnit.MILLISECONDS)) {
+								throw new TimeoutException("Consumer timed out");
+							}
 						}
 
 						buffer.remove(buffer.size() - 1);
@@ -63,7 +67,10 @@ public class ProducerConsumerWithLocks {
 					try {
 
 						lock.lock();
-
+						
+						// causing a exception on purpouse
+						int a = 10/0;
+						
 						while (isFull(buffer)) {
 							// wait
 							isFull.await();
